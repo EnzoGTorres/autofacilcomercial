@@ -1,0 +1,4 @@
+brand;model;year;price;mileage;description;images;is_available
+Ford;Focus;2020;15000;80000;Muy buen estado, único dueño, service al día;https://images.unsplash.com/photo-1549924231-f129b911e442?w=800;TRUE
+Toyota;Corolla;2021;18500;45000;Como nuevo, full equipo, cámara de retroceso;https://images.unsplash.com/photo-1623869675781-80aa31012a5a?w=800;TRUE
+Volkswagen;Golf;2019;13200;95000;Excelente mecánica, interior impecable, GNC;https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=800;TRUE
