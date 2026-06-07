@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import "./globals.css";
 import Link from "next/link";
+import Header from "@/components/Header";
 import FloatingButtons from "@/components/FloatingButtons";
-import { INSTAGRAM_URL, VISUALIK_URL, WHATSAPP_NUMBER } from "@/lib/config";
+import { INSTAGRAM_URL, SITE_URL, VISUALIK_URL, WHATSAPP_NUMBER } from "@/lib/config";
 
 const poppins = Poppins({
   subsets: ["latin"],
@@ -12,9 +13,26 @@ const poppins = Poppins({
   display: "swap",
 });
 
+const SITE_TITLE = "Auto Fácil MZA — Tu auto, fácil.";
+const SITE_DESCRIPTION = "Accedé a tu auto sin vueltas ni letra chica. Catálogo con financiación en Mendoza.";
+
 export const metadata: Metadata = {
-  title: "Auto Fácil MZA — Tu auto, fácil.",
-  description: "Accedé a tu auto sin vueltas ni letra chica. Catálogo con financiación en Mendoza.",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: "website",
+    locale: "es_AR",
+    url: SITE_URL,
+    siteName: "Auto Fácil MZA",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -26,33 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="min-h-screen bg-gray-50 text-[#121212] antialiased" style={{ fontFamily: "var(--font-poppins), system-ui, sans-serif" }}>
 
         {/* Navbar */}
-        <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-          <div className="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            {/* Logo */}
-            <Link href="/" className="flex items-center gap-1">
-              <span className="text-[#1565C0] font-extrabold text-xl tracking-tight">Auto Fácil</span>
-              <span className="text-[#F57C00] text-[10px] font-bold uppercase tracking-widest bg-orange-50 px-1.5 py-0.5 rounded ml-1">MZA</span>
-            </Link>
-
-            {/* Nav */}
-            <nav className="flex items-center gap-2 sm:gap-6">
-              <Link href="/" className="text-sm font-medium text-gray-500 hover:text-[#1565C0] transition-colors hidden sm:block">
-                Inicio
-              </Link>
-              <Link href="/catalogo" className="text-sm font-medium text-gray-500 hover:text-[#1565C0] transition-colors hidden sm:block">
-                Catálogo
-              </Link>
-              <a
-                href={whatsappUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm font-semibold bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-full transition-colors"
-              >
-                WhatsApp
-              </a>
-            </nav>
-          </div>
-        </header>
+        <Header />
 
         {/* Contenido */}
         <main>{children}</main>

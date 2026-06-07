@@ -1,11 +1,15 @@
 export interface Vehicle {
-  id: number;
+  id: string;
   brand: string;
   model: string;
   year: number;
   price: number;
-  mileage: number;
-  description: string;
-  images: string[] | string;
+  fuel_type: string | null;
+  description: string | null;
+  images: string[] | null;
   is_available: boolean;
+  created_at: string;
+  slug: string | null;
+  mileage: number | null;
+  updated_at: string | null;
 }

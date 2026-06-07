@@ -7,8 +7,11 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "images.unsplash.com",
       },
-      // Cuando uses Supabase Storage, agregá tu proyecto acá:
-      // { protocol: "https", hostname: "<project-ref>.supabase.co" },
+      {
+        protocol: "https",
+        hostname: "aftfwihzltrayxmslery.supabase.co",
+        pathname: "/storage/v1/object/public/**",
+      },
     ],
   },
 };

@@ -1,3 +1,6 @@
+"use client";
+
+import { useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Vehicle } from "@/types/vehicle";
@@ -6,6 +9,8 @@ import { getWhatsAppUrl } from "@/lib/whatsapp";
 interface VehicleCardProps {
   vehicle: Vehicle;
 }
+
+const SWIPE_THRESHOLD = 40; // px mínimos para considerar un swipe
 
 function WhatsAppIcon() {
   return (
@@ -16,17 +21,90 @@ function WhatsAppIcon() {
   );
 }
 
-export default function VehicleCard({ vehicle }: VehicleCardProps) {
-  const { id, brand, model, year, price, mileage, images, is_available } = vehicle;
+function ChevronLeftIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+    </svg>
+  );
+}
 
-  const imageUrl = Array.isArray(images) ? images[0] : images;
+function ChevronRightIcon() {
+  return (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2.5} viewBox="0 0 24 24" aria-hidden="true">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+    </svg>
+  );
+}
+
+export default function VehicleCard({ vehicle }: VehicleCardProps) {
+  const { brand, model, year, price, mileage, images, is_available, slug } = vehicle;
+
+  const galleryImages = Array.isArray(images) ? images.filter(Boolean) : images ? [images] : [];
+  const hasMultipleImages = galleryImages.length > 1;
+
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const imageUrl = galleryImages[currentIndex] ?? "";
   const whatsappUrl = getWhatsAppUrl({ brand, model, year, price });
+
+  // ─── Navegación con flechas ─────────────────────────────────────────────
+  const goToPrev = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+  };
+
+  const goToNext = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCurrentIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1));
+  };
+
+  // ─── Swipe táctil ───────────────────────────────────────────────────────
+  const touchStartX = useRef<number | null>(null);
+  const isSwiping = useRef(false);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (!hasMultipleImages) return;
+    touchStartX.current = e.touches[0].clientX;
+    isSwiping.current = false;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    if (!hasMultipleImages || touchStartX.current === null) return;
+    const delta = e.touches[0].clientX - touchStartX.current;
+    if (Math.abs(delta) > 10) isSwiping.current = true;
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (!hasMultipleImages || touchStartX.current === null) return;
+    const delta = e.changedTouches[0].clientX - touchStartX.current;
+
+    if (Math.abs(delta) >= SWIPE_THRESHOLD) {
+      // Evita que el "tap" navegue al detalle cuando en realidad fue un swipe
+      e.preventDefault();
+      if (delta < 0) {
+        setCurrentIndex((prev) => (prev === galleryImages.length - 1 ? 0 : prev + 1));
+      } else {
+        setCurrentIndex((prev) => (prev === 0 ? galleryImages.length - 1 : prev - 1));
+      }
+    }
+
+    touchStartX.current = null;
+    isSwiping.current = false;
+  };
 
   return (
     <div className="bg-white rounded-2xl overflow-hidden border border-gray-100 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1 flex flex-col">
 
       {/* Imagen */}
-      <Link href={`/catalogo/${id}`} className="block relative h-52 bg-gray-100 overflow-hidden">
+      <Link
+        href={`/catalogo/${slug ?? ""}`}
+        className="group block relative h-52 bg-gray-100 overflow-hidden"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
         <Image
           src={imageUrl}
           alt={`${brand} ${model}`}
@@ -34,6 +112,7 @@ export default function VehicleCard({ vehicle }: VehicleCardProps) {
           className="object-cover hover:scale-105 transition-transform duration-500"
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
+
         {/* Badge disponibilidad */}
         <span
           className={`absolute top-3 left-3 text-xs font-bold px-3 py-1 rounded-full ${
@@ -44,10 +123,44 @@ export default function VehicleCard({ vehicle }: VehicleCardProps) {
         >
           {is_available ? "Disponible" : "Vendido"}
         </span>
+
+        {/* Flechas de navegación (solo si hay más de una imagen) */}
+        {hasMultipleImages && (
+          <>
+            <button
+              type="button"
+              onClick={goToPrev}
+              aria-label="Imagen anterior"
+              className="absolute left-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-gray-700 shadow-md backdrop-blur-sm hover:bg-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            >
+              <ChevronLeftIcon />
+            </button>
+            <button
+              type="button"
+              onClick={goToNext}
+              aria-label="Imagen siguiente"
+              className="absolute right-2 top-1/2 -translate-y-1/2 w-8 h-8 flex items-center justify-center rounded-full bg-white/80 text-gray-700 shadow-md backdrop-blur-sm hover:bg-white transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+            >
+              <ChevronRightIcon />
+            </button>
+
+            {/* Indicador de posición */}
+            <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+              {galleryImages.map((_, index) => (
+                <span
+                  key={index}
+                  className={`h-1.5 rounded-full transition-all ${
+                    index === currentIndex ? "w-4 bg-white" : "w-1.5 bg-white/60"
+                  }`}
+                />
+              ))}
+            </div>
+          </>
+        )}
       </Link>
 
       {/* Info */}
-      <Link href={`/catalogo/${id}`} className="block px-5 pt-4 pb-2 flex-1">
+      <Link href={`/catalogo/${slug ?? ""}`} className="block px-5 pt-4 pb-2 flex-1">
         <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: "#1565C0" }}>
           {brand}
         </p>
@@ -56,7 +169,7 @@ export default function VehicleCard({ vehicle }: VehicleCardProps) {
           <span className="text-base font-normal text-gray-400">{year}</span>
         </h3>
 
-        {mileage > 0 && (
+        {mileage !== null && mileage > 0 && (
           <p className="text-xs text-gray-400 mt-1">{mileage.toLocaleString("es-AR")} km</p>
         )}
 

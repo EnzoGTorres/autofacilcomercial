@@ -1,20 +1,22 @@
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { supabase } from "@/lib/supabaseClient";
-import { WHATSAPP_NUMBER } from "@/lib/config";
+import { SITE_URL } from "@/lib/config";
+import { getWhatsAppUrl } from "@/lib/whatsapp";
 import { Vehicle } from "@/types/vehicle";
+import VehicleGallery from "@/components/VehicleGallery";
 
+// En Next.js 15+, params es una Promise
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ slug: string }>;
 }
 
-async function getVehicle(id: string): Promise<Vehicle | null> {
+async function getVehicle(slug: string): Promise<Vehicle | null> {
   const { data, error } = await supabase
     .from("vehicles")
     .select("*")
-    .eq("id", id)
+    .eq("slug", slug)
     .single();
 
   if (error) return null;
@@ -22,9 +24,45 @@ async function getVehicle(id: string): Promise<Vehicle | null> {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const vehicle = await getVehicle(params.id);
-  if (!vehicle) return { title: "Auto no encontrado" };
-  return { title: `${vehicle.brand} ${vehicle.model} ${vehicle.year} — AutoFácil` };
+  const { slug } = await params;
+  const vehicle = await getVehicle(slug);
+
+  if (!vehicle) {
+    return { title: "Auto no encontrado — Auto Fácil MZA" };
+  }
+
+  const { brand, model, year, price, mileage, description, images } = vehicle;
+  const title = `${brand} ${model} ${year} — Auto Fácil MZA`;
+  const metaDescription =
+    description?.trim() ||
+    `${brand} ${model} ${year} disponible en Auto Fácil MZA, Mendoza. Precio: $${price.toLocaleString("es-AR")}${
+      mileage ? ` · ${mileage.toLocaleString("es-AR")} km` : ""
+    }. Consultá ahora por WhatsApp.`;
+
+  const galleryImages = Array.isArray(images) ? images.filter(Boolean) : images ? [images] : [];
+  const ogImage = galleryImages[0];
+  const canonicalUrl = `${SITE_URL}/catalogo/${slug}`;
+
+  return {
+    title,
+    description: metaDescription,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      type: "website",
+      url: canonicalUrl,
+      title,
+      description: metaDescription,
+      images: ogImage ? [{ url: ogImage, alt: `${brand} ${model} ${year}` }] : undefined,
+    },
+    twitter: {
+      card: ogImage ? "summary_large_image" : "summary",
+      title,
+      description: metaDescription,
+      images: ogImage ? [ogImage] : undefined,
+    },
+  };
 }
 
 function WhatsAppIcon() {
@@ -37,18 +75,15 @@ function WhatsAppIcon() {
 }
 
 export default async function AutoDetallePage({ params }: PageProps) {
-  const vehicle = await getVehicle(params.id);
+  const { slug } = await params;
+  const vehicle = await getVehicle(slug);
 
   if (!vehicle) notFound();
 
   const { brand, model, year, price, mileage, description, images, is_available } = vehicle;
+  const galleryImages = Array.isArray(images) ? images.filter(Boolean) : images ? [images] : [];
 
-  const imageUrl = Array.isArray(images) ? images[0] : images;
-
-  const mensajeWA = encodeURIComponent(
-    `Hola! Me interesa el ${brand} ${model} ${year} publicado en AutoFácil. ¿Está disponible?`
-  );
-  const whatsappURL = `https://wa.me/${WHATSAPP_NUMBER}?text=${mensajeWA}`;
+  const whatsappURL = getWhatsAppUrl({ brand, model, year, price });
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
@@ -62,17 +97,8 @@ export default async function AutoDetallePage({ params }: PageProps) {
       </nav>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 items-start">
-        {/* Imagen */}
-        <div className="relative h-72 sm:h-96 w-full rounded-2xl overflow-hidden bg-gray-100 shadow-md">
-          <Image
-            src={imageUrl}
-            alt={`${brand} ${model}`}
-            fill
-            className="object-cover"
-            priority
-            sizes="(max-width: 1024px) 100vw, 50vw"
-          />
-        </div>
+        {/* Galería de imágenes */}
+        <VehicleGallery images={galleryImages} alt={`${brand} ${model}`} />
 
         {/* Detalle */}
         <div>
@@ -90,10 +116,10 @@ export default async function AutoDetallePage({ params }: PageProps) {
           </h1>
 
           <p className="text-4xl font-extrabold text-blue-600 mt-4">
-            USD {price.toLocaleString("es-AR")}
+            $ {price.toLocaleString("es-AR")}
           </p>
 
-          {mileage > 0 && (
+          {mileage !== null && mileage > 0 && (
             <p className="text-sm text-gray-500 mt-1">{mileage.toLocaleString("es-AR")} km</p>
           )}
 
