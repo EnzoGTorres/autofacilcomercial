@@ -31,7 +31,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     return { title: "Auto no encontrado — Auto Fácil MZA" };
   }
 
-  const { brand, model, year, price, mileage, description, images } = vehicle;
+  const { brand, model, year, price, mileage, description } = vehicle;
   const title = `${brand} ${model} ${year} — Auto Fácil MZA`;
   const metaDescription =
     description?.trim() ||
@@ -39,9 +39,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       mileage ? ` · ${mileage.toLocaleString("es-AR")} km` : ""
     }. Consultá ahora por WhatsApp.`;
 
-  const galleryImages = Array.isArray(images) ? images.filter(Boolean) : images ? [images] : [];
-  const ogImage = galleryImages[0];
   const canonicalUrl = `${SITE_URL}/catalogo/${slug}`;
+
+  // Estrategia temporal: usar una imagen OG local fija (servida por Vercel) en
+  // lugar de las fotos del vehículo en Supabase Storage. Las fotos del catálogo
+  // son pesadas (~1-2 MB) y de dimensiones variables, lo que hace que crawlers
+  // de redes sociales (WhatsApp/Facebook) puedan fallar al procesarlas en el
+  // primer rastreo y cachear la vista previa sin imagen. `og-default.jpg` está
+  // pre-generada en 1200x630 (tamaño recomendado por Open Graph) y pesa ~125 KB.
+  const ogImageUrl = `${SITE_URL}/og-default.jpg`;
 
   return {
     title,
@@ -54,13 +60,21 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       url: canonicalUrl,
       title,
       description: metaDescription,
-      images: ogImage ? [{ url: ogImage, alt: `${brand} ${model} ${year}` }] : undefined,
+      images: [
+        {
+          url: ogImageUrl,
+          width: 1200,
+          height: 630,
+          type: "image/jpeg",
+          alt: "Auto Fácil MZA",
+        },
+      ],
     },
     twitter: {
-      card: ogImage ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description: metaDescription,
-      images: ogImage ? [ogImage] : undefined,
+      images: [ogImageUrl],
     },
   };
 }
